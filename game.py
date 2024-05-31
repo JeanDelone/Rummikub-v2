@@ -4,13 +4,6 @@ from board import Board
 from enum import Enum, auto
 from tile import Tile
 
-class ActionType(Enum):
-    DRAW = auto()
-    PLAY_NEW_SET = auto()
-    ADD_TO_EXISTING_SET = auto()
-    REARRANGE_BOARD = auto()
-
-
 class Game:
     def __init__(self, player_names:list):
         self.deck = Deck()
@@ -26,41 +19,12 @@ class Game:
     def next_player(self):
         self.current_player_idx = (self.current_player_idx + 1) % len(self.players)
 
-    def play_turn(self, player, actions):
+    def play_turn(self, player):
         initial_hand_size = len(player.hand)
         board_backup = self.board.tiles.copy()
         hand_backup = player.hand.copy()
 
-        # Process player's actions
-        for action in actions:
-            action_type = action[0]
-            if action_type == ActionType.DRAW:
-                self.draw_tile(player)
-                return  # Drawing a tile ends the turn
 
-            elif action_type == ActionType.PLAY_NEW_SET:
-                tiles = action[1]
-                if not self.play_new_set(player, tiles):
-                    print("Invalid new set or run.")
-                    self.revert_turn(player, board_backup, hand_backup)
-                    return
-
-            elif action_type == ActionType.ADD_TO_EXISTING_SET:
-                tiles = action[1]
-                set_index = action[2]
-                if not self.add_to_existing_set(player, tiles, set_index):
-                    print("Invalid addition to existing set or run.")
-                    self.revert_turn(player, board_backup, hand_backup)
-                    return
-
-            elif action_type == ActionType.REARRANGE_BOARD:
-                new_board_state = action[1]
-                if not self.rearrange_board(player, new_board_state):
-                    print("Invalid board rearrangement.")
-                    self.revert_turn(player, board_backup, hand_backup)
-                    return
-
-        # Validate the final board state and that the player used at least one tile from their hand
         if not self.is_valid_board() or len(player.hand) >= initial_hand_size:
             print(f"{player.name}'s move is invalid. Reverting.")
             self.revert_turn(player, board_backup, hand_backup)
@@ -83,7 +47,6 @@ class Game:
         while not self.is_game_over():
             current_player = self.players[self.current_player_idx]
             print(f"{current_player.name}'s turn")
-            # Here you would implement logic for the player to take their turn
             self.next_player()
     
 
@@ -110,16 +73,13 @@ class Game:
         if not non_joker_tiles:
             return False
 
-        # Sort the non-joker tiles by their number
         non_joker_tiles.sort(key=lambda x: x.number)
 
-        # Check if all non-joker tiles are of the same color
         color = non_joker_tiles[0].color
         for tile in non_joker_tiles:
             if tile.color != color:
                 return False
 
-        # Check if the jokers can fill the gaps to form a valid run
         gaps = 0
         for i in range(1, len(non_joker_tiles)):
             gap = non_joker_tiles[i].number - non_joker_tiles[i - 1].number - 1
@@ -143,10 +103,8 @@ class Game:
         colors = [tile.color for tile in non_joker_tiles]
 
         if len(set(numbers)) == 1:
-            # All numbers are the same, check for unique colors
             return len(set(colors)) == len(colors) + joker_count
         elif len(set(colors)) == 1:
-            # All colors are the same, check for consecutive numbers
             non_joker_tiles.sort(key=lambda x: x.number)
             for i in range(1, len(non_joker_tiles)):
                 if non_joker_tiles[i].number != non_joker_tiles[i-1].number + 1:
